@@ -69,6 +69,7 @@ export default function Home() {
 
   // ---------- Create / Update ----------
   const openCreate = () => {
+    setModalType("event");
     setEditingEvent(null);
     setTitle("");
     setNotes("");
@@ -110,6 +111,89 @@ export default function Home() {
   // ---------- Calendar data ----------
   const eventDates = events.map((e) => new Date(e.set_date));
 
+    // ---------- TRANSACTIONS STATE ----------
+    const [transactions, setTransactions] = useState([]);
+    const [transactionSortAsc, setTransactionSortAsc] = useState(true);
+    const [editingTransaction, setEditingTransaction] = useState(null);
+
+    // transaction form
+    const [transactionTitle, setTransactionTitle] = useState("");
+    const [transactionNotes, setTransactionNotes] = useState("");
+    const [transactionAmount, setTransactionAmount] = useState("");
+    const [transactionType, setTransactionType] = useState("expense");
+    const [transactionDate, setTransactionDate] = useState(null);
+
+    // ---------- FETCH TRANSACTIONS ----------
+    const fetchTransactions = async () => {
+    const res = await api.get("/api/transactions/");
+    setTransactions(res.data);
+    };
+
+    useEffect(() => {
+    fetchTransactions();
+    }, []);
+
+    // ---------- SORT TRANSACTIONS ----------
+    const sortedTransactions = useMemo(() => {
+    return [...transactions].sort((a, b) => {
+        const d1 = new Date(a.transaction_date);
+        const d2 = new Date(b.transaction_date);
+        return transactionSortAsc ? d1 - d2 : d2 - d1;
+    });
+    }, [transactions, transactionSortAsc]);
+
+    // ---------- TRANSACTION CREATE / EDIT ----------
+    const openCreateTransaction = () => {
+        setModalType("transaction");
+        setEditingTransaction(null);
+        setTransactionTitle("");
+        setTransactionNotes("");
+        setTransactionAmount("");
+        setTransactionType("expense");
+        setTransactionDate(null);
+        setOpened(true);
+      };
+      
+      const openEditTransaction = (tx) => {
+        setModalType("transaction");
+        setEditingTransaction(tx);
+        setTransactionTitle(tx.title);
+        setTransactionNotes(tx.notes || "");
+        setTransactionAmount(tx.amount);
+        setTransactionType(tx.transaction_type);
+        setTransactionDate(dayjs(tx.transaction_date));
+        setOpened(true);
+      };
+
+    const saveTransaction = async () => {
+    if (!transactionTitle || !transactionDate || !transactionAmount) return;
+
+    const payload = {
+        title: transactionTitle,
+        notes: transactionNotes,
+        amount: transactionAmount,
+        transaction_type: transactionType,
+        transaction_date: dayjs(transactionDate).toISOString(),
+    };
+
+    if (editingTransaction) {
+        await api.put(`/api/transactions/${editingTransaction.id}/`, payload);
+    } else {
+        await api.post("/api/transactions/", payload);
+    }
+
+    setOpened(false);
+    fetchTransactions();
+    };
+
+    // ---------- TRANSACTION DELETE ----------
+    const deleteTransaction = async (id) => {
+    await api.delete(`/api/transactions/${id}/`);
+    fetchTransactions();
+    };
+
+    const [modalType, setModalType] = useState("event"); 
+
   return (
     
     <AppShell padding="md">
@@ -119,7 +203,73 @@ export default function Home() {
             Logout
         </Button>
         </Group>
-        {/* ---------- TOP SECTION ---------- */}
+        {/* ---------- Transactions ---------- */}
+        <Group justify="space-between" mb="md">
+        <Title order={2}>Transactions</Title>
+
+        <Group>
+            <ActionIcon
+            onClick={() => setTransactionSortAsc(!transactionSortAsc)}
+            >
+            {transactionSortAsc ? (
+                <IconSortAscending />
+            ) : (
+                <IconSortDescending />
+            )}
+            </ActionIcon>
+
+            <Button
+            leftSection={<IconPlus size={16} />}
+            onClick={openCreateTransaction}
+            >
+            Add Transaction
+            </Button>
+        </Group>
+        </Group>
+
+        <Paper withBorder radius="md">
+        <Table striped highlightOnHover>
+            <Table.Thead>
+            <Table.Tr>
+                <Table.Th>Title</Table.Th>
+                <Table.Th>Date</Table.Th>
+                <Table.Th>Actions</Table.Th>
+            </Table.Tr>
+            </Table.Thead>
+
+            <Table.Tbody>
+            {sortedTransactions.map((tx) => (
+                <Table.Tr
+                key={tx.id}
+                onClick={() => openEditTransaction(tx)}
+                style={{ cursor: "pointer" }}
+                >
+                <Table.Td>{tx.title}</Table.Td>
+
+                <Table.Td>
+                    {dayjs(tx.transaction_date).format("MMM D, YYYY")}
+                </Table.Td>
+
+                <Table.Td>
+                    <Button
+                    size="xs"
+                    color="red"
+                    variant="subtle"
+                    onClick={(ev) => {
+                        ev.stopPropagation();
+                        deleteTransaction(tx.id);
+                    }}
+                    >
+                    Delete
+                    </Button>
+                </Table.Td>
+                </Table.Tr>
+            ))}
+            </Table.Tbody>
+        </Table>
+        </Paper>
+
+        {/* ---------- Upcoming Events ---------- */}
       <Group justify="space-between" mb="md">
         <Title order={2}>Upcoming Events</Title>
 
@@ -206,39 +356,83 @@ export default function Home() {
 
       {/* ---------- MODAL ---------- */}
       <Modal
-        opened={opened}
-        onClose={() => setOpened(false)}
-        title={editingEvent ? "Edit Event" : "New Event"}
-        centered
-      >
-        <Stack>
-          <TextInput
-            label="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
+  opened={opened}
+  onClose={() => setOpened(false)}
+  title={modalType === "transaction" ? "Transaction" : "Event"}
+>
+  <Stack>
+    {/* ---------- TITLE ---------- */}
+    <TextInput
+      label="Title"
+      value={modalType === "transaction" ? transactionTitle : title}
+      onChange={(e) =>
+        modalType === "transaction"
+          ? setTransactionTitle(e.target.value)
+          : setTitle(e.target.value)
+      }
+      required
+    />
 
-          <DateTimePicker
+    {/* ---------- NOTES ---------- */}
+    <Textarea
+      label="Notes"
+      value={modalType === "transaction" ? transactionNotes : notes}
+      onChange={(e) =>
+        modalType === "transaction"
+          ? setTransactionNotes(e.target.value)
+          : setNotes(e.target.value)
+      }
+    />
+
+    {/* ---------- TRANSACTION-ONLY ---------- */}
+        {modalType === "transaction" && (
+        <>
+            <TextInput
+            label="Amount"
+            type="number"
+            value={transactionAmount}
+            onChange={(e) => setTransactionAmount(e.target.value)}
+            required
+            />
+
+            <Select
+            label="Type"
+            value={transactionType}
+            onChange={setTransactionType}
+            data={[
+                { value: "expense", label: "Expense" },
+                { value: "income", label: "Income" },
+            ]}
+            />
+
+            <DateTimePicker
+            label="Transaction Date"
+            value={transactionDate}
+            onChange={setTransactionDate}
+            required
+            />
+        </>
+        )}
+
+        {/* ---------- EVENT-ONLY ---------- */}
+        {modalType === "event" && (
+        <DateTimePicker
             label="Event Date"
             value={setDate}
             onChange={setSetDate}
             required
-          />
+        />
+        )}
 
-          <Textarea
-            label="Notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            autosize
-            minRows={3}
-          />
+        {/* ---------- SAVE ---------- */}
+        <Button
+        onClick={modalType === "transaction" ? saveTransaction : saveEvent}
+        >
+        Save
+        </Button>
+    </Stack>
+    </Modal>
 
-          <Button onClick={saveEvent}>
-            {editingEvent ? "Update Event" : "Create Event"}
-          </Button>
-        </Stack>
-      </Modal>
     </AppShell>
   );
 }

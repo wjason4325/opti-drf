@@ -9,6 +9,7 @@ from .models import (
     WorkEvent,
     FinancialEvent,
     Transaction,
+    EventSeries
 )
 from .serializers import (
     EventSerializer,
@@ -16,7 +17,8 @@ from .serializers import (
     WorkEventSerializer,
     FinancialEventSerializer,
     TransactionSerializer,
-    UserSerializer
+    UserSerializer,
+    EventSeriesSerializer
 )
 
 class CreateUserView(generics.CreateAPIView):
@@ -34,6 +36,10 @@ class BaseUserViewSet(ModelViewSet):
     def perform_create(self, serializer):
         # Inject the user into the save method
         serializer.save(user=self.request.user)
+
+class EventSeriesViewSet(BaseUserViewSet):
+    queryset = EventSeries.objects.all()
+    serializer_class = EventSeriesSerializer
 
 class EventViewSet(BaseUserViewSet):
     queryset = Event.objects.all()

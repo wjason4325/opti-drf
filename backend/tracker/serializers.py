@@ -5,6 +5,7 @@ from .models import (
     WorkEvent,
     FinancialEvent,
     Transaction,
+    EventSeries,
 )
 from django.contrib.auth.models import User
 
@@ -22,9 +23,9 @@ class UserSerializer(serializers.ModelSerializer):
         )
         return user
 
-class EventSerializer(serializers.ModelSerializer):
+class EventSeriesSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Event
+        model = EventSeries
         fields = "__all__"
         read_only_fields = ["user"]
 
@@ -50,5 +51,15 @@ class FinancialEventSerializer(serializers.ModelSerializer):
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
+        fields = "__all__"
+        read_only_fields = ["user"]
+
+class EventSerializer(serializers.ModelSerializer):
+    series_name = serializers.ReadOnlyField(source='series.name')
+    medical_data = MedicalEventSerializer(source='medicalevent', read_only=True)
+    work_data = WorkEventSerializer(source='workevent', read_only=True)
+    financial_data = FinancialEventSerializer(source='financialevent', read_only=True)
+    class Meta:
+        model = Event
         fields = "__all__"
         read_only_fields = ["user"]

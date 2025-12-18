@@ -2,8 +2,25 @@ from django.db import models
 from django.contrib.auth.models import User
 
 # Create your models here.
+
+class EventSeries(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="event_series")
+    name = models.CharField(max_length=255, help_text="e.g., Bi-weekly Physical Therapy")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+    
+
 class Event(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="events")
+    series = models.ForeignKey(
+        EventSeries, 
+        on_delete=models.SET_NULL,
+        null=True, 
+        blank=True, 
+        related_name="events"
+    )
     title = models.CharField(max_length=255)
     set_date = models.DateTimeField(
         help_text="When the event is scheduled to occur"

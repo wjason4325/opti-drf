@@ -3,3 +3,5 @@
 @import "./styles/global.css";
 
 @import "./styles/variables.css";
+
+@import "@mantine/core/styles.css";

@@ -1,7 +1,9 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # Create your models here.
 class Event(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="events")
     title = models.CharField(max_length=255)
     set_date = models.DateTimeField(
         help_text="When the event is scheduled to occur"
@@ -47,6 +49,7 @@ class Transaction(models.Model):
         ("income", "Income"),
         ("expense", "Expense"),
     ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="transactions")
     title = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     transaction_type = models.CharField(

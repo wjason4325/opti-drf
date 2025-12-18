@@ -13,6 +13,35 @@ class Event(models.Model):
         return self.title
     
 
+class MedicalEvent(Event):
+    reason = models.CharField(max_length=255)
+    provider = models.CharField(max_length=255, blank=True)
+    medication = models.CharField(max_length=255, blank=True)
+
+    def __str__(self):
+        return f"Medical: {self.title}"
+
+    
+class WorkEvent(Event):
+    occurrence = models.CharField(max_length=255)
+    location = models.CharField(max_length=255, blank=True)
+
+    def __str__(self):
+        return f"Work: {self.title}"
+    
+class FinancialEvent(Event):
+    occurrence = models.CharField(max_length=255)
+    expected_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    is_recurring = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Finance Event: {self.title}"
+
 class Transaction(models.Model):
     TRANSACTION_TYPES = [
         ("income", "Income"),
@@ -31,3 +60,4 @@ class Transaction(models.Model):
 
     def __str__(self):
         return self.title
+
